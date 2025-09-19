@@ -1,6 +1,7 @@
 const { users, User } = require('../models/user');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 let idCounter = 1;
 
@@ -20,16 +21,17 @@ const findUserByEmail = (email) => {
 
 const authenticateUser = (email, password) => {
   const user = findUserByEmail(email);
+  
   if (!user) {
     return { success: false, status: 401, message: 'Invalid email or password' };
   }
-
+  
   const passwordIsValid = bcrypt.compareSync(password, user.password);
   if (!passwordIsValid) {
     return { success: false, status: 401, message: 'Invalid email or password' };
   }
 
-  const token = jwt.sign({ id: user.id }, 'supersecret', {
+  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
     expiresIn: 86400 // 24 hours
   });
 
