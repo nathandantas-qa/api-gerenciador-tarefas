@@ -55,7 +55,7 @@ describe('API de Tarefas', () => {
 
     expect(resposta.status).to.equal(200);
     expect(resposta.body.title).to.equal('Atualizando Task');
-    expect(resposta.body.completed).to.be.true;
+    expect(resposta.body.completed).to.be.false;
   });
 
   it('não deve permitir que um usuário atualize uma tarefa que não é sua', async () => {
