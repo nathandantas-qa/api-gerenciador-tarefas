@@ -1,6 +1,4 @@
 const userService = require('../../src/services/userService');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 
 const register = (req, res) => {
   const { email, password } = req.body;
@@ -22,21 +20,13 @@ const login = (req, res) => {
     return res.status(400).send({ message: 'Email and password are required' });
   }
 
-  const user = userService.findUserByEmail(email);
-  if (!user) {
-    return res.status(401).send({ message: 'Invalid email or password' });
+  const result = userService.authenticateUser(email, password);
+
+  if (!result.success) {
+    return res.status(result.status).send({ message: result.message });
   }
 
-  const passwordIsValid = bcrypt.compareSync(password, user.password);
-  if (!passwordIsValid) {
-    return res.status(401).send({ message: 'Invalid email or password' });
-  }
-
-  const token = jwt.sign({ id: user.id }, 'supersecret', {
-    expiresIn: 86400 // 24 hours
-  });
-
-  res.status(200).send({ auth: true, token: token });
+  res.status(200).send({ auth: true, token: result.token });
 };
 
 module.exports = {

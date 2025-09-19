@@ -1,5 +1,6 @@
 const { users, User } = require('../models/user');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 let idCounter = 1;
 
@@ -17,7 +18,26 @@ const findUserByEmail = (email) => {
   return users.find(user => user.email === email);
 };
 
+const authenticateUser = (email, password) => {
+  const user = findUserByEmail(email);
+  if (!user) {
+    return { success: false, status: 401, message: 'Invalid email or password' };
+  }
+
+  const passwordIsValid = bcrypt.compareSync(password, user.password);
+  if (!passwordIsValid) {
+    return { success: false, status: 401, message: 'Invalid email or password' };
+  }
+
+  const token = jwt.sign({ id: user.id }, 'supersecret', {
+    expiresIn: 86400 // 24 hours
+  });
+
+  return { success: true, token };
+};
+
 module.exports = {
   createUser,
-  findUserByEmail
+  findUserByEmail,
+  authenticateUser
 };
