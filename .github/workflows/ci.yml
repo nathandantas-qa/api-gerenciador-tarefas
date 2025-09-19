@@ -30,9 +30,15 @@ jobs:
 
     - name: Criar .env
       run: |
-        echo "PORT=${{ secrets.PORT }}" >> .env
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-        echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
+        echo "PORT=3000 }}" >> .env
+        echo "JWT_SECRET=teste" >> .env
+        echo "API_BASE_URL=http://localhost:3000" >> .env
+
+    # - name: Criar .env
+    #   run: |
+    #     echo "PORT=${{ secrets.PORT }}" >> .env
+    #     echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+    #     echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
 
     - name: Rodar os testes External de API Rest via HTTP
       run: npm run test-rest-external
