@@ -15,15 +15,21 @@ const findTaskById = (id) => {
   return tasks.find(task => task.id === id);
 };
 
-const updateTask = (id, title, description, completed) => {
+const updateTask = (id, userId, title, description, completed) => {
   const task = findTaskById(id);
-  if (task) {
-    task.title = title !== undefined ? title : task.title;
-    task.description = description !== undefined ? description : task.description;
-    task.completed = completed !== undefined ? completed : task.completed;
-    return task;
+  if (!task) {
+    return { success: false, status: 404, message: 'Task not found' };
   }
-  return null;
+
+  if (task.userId !== userId) {
+    return { success: false, status: 403, message: 'You are not authorized to update this task' };
+  }
+
+  task.title = title !== undefined ? title : task.title;
+  task.description = description !== undefined ? description : task.description;
+  task.completed = completed !== undefined ? completed : task.completed;
+  
+  return { success: true, data: task };
 };
 
 module.exports = {

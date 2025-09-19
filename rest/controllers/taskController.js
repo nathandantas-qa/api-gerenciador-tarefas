@@ -17,19 +17,15 @@ const getTasks = (req, res) => {
 const updateTask = (req, res) => {
   const taskId = parseInt(req.params.id);
   const { title, description, completed } = req.body;
+  const userId = req.userId;
 
-  const task = taskService.findTaskById(taskId);
+  const result = taskService.updateTask(taskId, userId, title, description, completed);
 
-  if (!task) {
-    return res.status(404).send({ message: 'Task not found' });
+  if (!result.success) {
+    return res.status(result.status).send({ message: result.message });
   }
 
-  if (task.userId !== req.userId) {
-    return res.status(403).send({ message: 'You are not authorized to update this task' });
-  }
-
-  const updatedTask = taskService.updateTask(taskId, title, description, completed);
-  res.status(200).send(updatedTask);
+  res.status(200).send(result.data);
 };
 
 module.exports = {
