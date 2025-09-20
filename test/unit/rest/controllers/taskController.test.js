@@ -3,10 +3,19 @@ const sinon = require('sinon');
 const taskService = require('../../../../src/services/taskService');
 const { createTask, getTasks, updateTask } = require('../../../../rest/controllers/taskController');
 
+// Fixtures
+const createTaskPayload = require('../fixture/task/createTask_payload.json');
+const createTaskResponse = require('../fixture/task/createTask_response.json');
+const getTasksResponse = require('../fixture/task/getTasks_response.json');
+const updateTaskPayload = require('../fixture/task/updateTask_payload.json');
+const updateTaskResponse = require('../fixture/task/updateTask_response.json');
+const updateTaskError = require('../fixture/task/updateTask_error.json');
+
+
 const { expect } = chai;
 
-describe('Unit Test Task Controller', () => {
-  let requisicao, resposta, sandbox;
+describe('Teste de unidade para o Task Controller', () => {
+  let req, res, sandbox;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -26,18 +35,27 @@ describe('Unit Test Task Controller', () => {
   });
 
   describe('createTask', () => {
-    it('should create a task and return 201', () => {
-      req.body = { title: 'Test Task', description: 'Test Description' };
-      const task = { id: 1, ...req.body, userId: req.userId, completed: false };
-      sandbox.stub(taskService, 'createTask').returns(task);
+    it('deve criar uma tarefa e retornar 201', () => {
+      req.body = createTaskPayload;
+      
+      const createTaskStub =  sandbox.stub(taskService, 'createTask').returns(createTaskResponse);
 
       createTask(req, res);
+      
+      expect(createTaskStub.calledOnce).to.be.true;
+      
+      expect(createTaskStub.calledWith(
+        createTaskPayload.title, 
+        createTaskPayload.description, 
+        req.userId 
+      )).to.be.true;
+
 
       expect(res.status.calledWith(201)).to.be.true;
-      expect(res.send.calledWith(task)).to.be.true;
+      expect(res.send.calledWith(createTaskResponse)).to.be.true;
     });
 
-    it('should return 400 if title is missing', () => {
+    it('deve retornar 400 se o título estiver ausente', () => {
       req.body = { description: 'Test Description' };
 
       createTask(req, res);
@@ -48,40 +66,37 @@ describe('Unit Test Task Controller', () => {
   });
 
   describe('getTasks', () => {
-    it('should get all tasks for a user and return 200', () => {
-      const tasks = [{ id: 1, title: 'Test Task', description: 'Test Description', userId: req.userId, completed: false }];
-      sandbox.stub(taskService, 'findTasksByUserId').returns(tasks);
+    it('deve retornar 200 e todas as tarefas de um usuário', () => {
+      sandbox.stub(taskService, 'findTasksByUserId').returns(getTasksResponse);
 
       getTasks(req, res);
 
       expect(res.status.calledWith(200)).to.be.true;
-      expect(res.send.calledWith(tasks)).to.be.true;
+      expect(res.send.calledWith(getTasksResponse)).to.be.true;
     });
   });
 
   describe('updateTask', () => {
-    it('should update a task and return 200', () => {
+    it('deve atualizar uma tarefa e retornar 200', () => {
       req.params.id = '1';
-      req.body = { title: 'Updated Task', description: 'Updated Description', completed: true };
-      const updatedTask = { id: 1, ...req.body, userId: req.userId };
-      sandbox.stub(taskService, 'updateTask').returns({ success: true, data: updatedTask });
+      req.body = updateTaskPayload;
+      sandbox.stub(taskService, 'updateTask').returns({ success: true, data: updateTaskResponse });
 
       updateTask(req, res);
 
       expect(res.status.calledWith(200)).to.be.true;
-      expect(res.send.calledWith(updatedTask)).to.be.true;
+      expect(res.send.calledWith(updateTaskResponse)).to.be.true;
     });
 
-    it('should return an error if the task update fails', () => {
+    it('deve retornar um erro se a atualização da tarefa falhar', () => {
       req.params.id = '1';
       req.body = { title: 'Updated Task' };
-      const error = { success: false, status: 404, message: 'Task not found' };
-      sandbox.stub(taskService, 'updateTask').returns(error);
+      sandbox.stub(taskService, 'updateTask').returns(updateTaskError);
 
       updateTask(req, res);
 
-      expect(res.status.calledWith(error.status)).to.be.true;
-      expect(res.send.calledWith({ message: error.message })).to.be.true;
+      expect(res.status.calledWith(updateTaskError.status)).to.be.true;
+      expect(res.send.calledWith({ message: updateTaskError.message })).to.be.true;
     });
   });
 });
