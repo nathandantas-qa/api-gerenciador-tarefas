@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const authenticateUser = require('./authenticate');
+const userService = require('../src/services/userService');
 const taskService = require('../src/services/taskService');
 
 
@@ -7,45 +8,31 @@ const resolvers = {
   Query: {
     tasks: (parent, args, context) => {
       if (!context.user) throw new Error('Authentication required');
-      return taskService.getTasksByUserId(context.user.id);
+      return taskService.findTasksByUserId(context.user.id);
     },
   },
   Mutation: {
     registerUser: (parent, { email, password }) => {
-      if (taskService.findUserByEmail(email)) {
-        throw new Error('Email already exists');
-      }
-      return taskService.createUser(email, password);
+      const user = userService.createUser(email, password);
+      if (!user) throw new Error('Email already exists');
+      return { id: user.id, email: user.email };
     },
     loginUser: (parent, { email, password }) => {
-      const user = taskService.findUserByEmail(email);
-      if (!user || user.password !== password) {
-        throw new Error('Invalid credentials');
-      }
-      const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-      return { token, user: { id: user.id, email: user.email } };
+      const result = userService.authenticateUser(email, password);
+      if (!result.success) throw new Error(result.message);
+      const user = userService.findUserByEmail(email);
+      return { token: result.token, user: { id: user.id, email: user.email } };
     },
     createTask: (parent, { title, description }, context) => {
       if (!context.user) throw new Error('Authentication required');
       if (!title) throw new Error('Title is required');
-      const task = {
-        id: taskIdCounter++,
-        title,
-        description,
-        userId: context.user.id,
-        completed: false
-      };
-      tasks.push(task);
-      return task;
+      return taskService.createTask(title, description, context.user.id);
     },
     updateTask: (parent, { id, title, description, completed }, context) => {
       if (!context.user) throw new Error('Authentication required');
-      const task = tasks.find(t => t.id == id && t.userId === context.user.id);
-      if (!task) throw new Error('Task not found or unauthorized');
-      if (title !== undefined) task.title = title;
-      if (description !== undefined) task.description = description;
-      if (completed !== undefined) task.completed = completed;
-      return task;
+      const result = taskService.updateTask(parseInt(id), context.user.id, title, description, completed);
+      if (!result.success) throw new Error(result.message);
+      return result.data;
     },
   },
 };
