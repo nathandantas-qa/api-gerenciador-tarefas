@@ -1,0 +1,7 @@
+{
+  "id": 1,
+  "title": "Updated Task",
+  "description": "Updated Description",
+  "completed": true,
+  "userId": 1
+}
