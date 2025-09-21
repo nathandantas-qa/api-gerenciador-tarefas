@@ -24,7 +24,8 @@ jobs:
       
     - name: Criar .env
       run: |
-        echo "PORT=${{ secrets.PORT }}" >> .env
+        echo "PORT=${{ secrets.PORT_REST }}" >> .env
+        echo "PORT=${{ secrets.PORT_GRAPHQL }}" >> .env
         echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
         echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
 
@@ -34,6 +35,9 @@ jobs:
     - name: Esperar as APIs estarem Funcionando
       run: sleep 8
 
+    - name: Subir a API GraphQL
+      run: npm run start-graphql &
+
     - name: Rodar testes unitários
       run: npm run test-unit
 
@@ -42,3 +46,6 @@ jobs:
 
     - name: Rodar testes External de API Rest via HTTP
       run: npm run test-rest-external
+    
+    - name: Rodar testes de GraphQL
+      run: npm run test-graphql
