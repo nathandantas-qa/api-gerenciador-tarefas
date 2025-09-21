@@ -24,8 +24,8 @@ jobs:
       
     - name: Criar .env
       run: |
-        echo "PORT=${{ secrets.PORT_REST }}" >> .env
-        echo "PORT=${{ secrets.PORT_GRAPHQL }}" >> .env
+        echo "PORT_REST=${{ secrets.PORT_REST }}" >> .env
+        echo "PORT_GRAPHQL=${{ secrets.PORT_GRAPHQL }}" >> .env
         echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
         echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
 
