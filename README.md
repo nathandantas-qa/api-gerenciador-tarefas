@@ -12,7 +12,7 @@ Projeto desenvolvido para a Pós-graduação em Automação de Testes de Softwar
 Construir uma API REST com Javascript e Express para gerenciar tarefas, incluindo autenticação de usuário via JWT e documentação Swagger.  
 A API serve de base para aprender e aplicar testes automatizados em ambiente de pipeline CI/CD.
 
-## Geração de Código via IA
+A estrutura inicial desta API foi gerada com o auxílio do assistente de IA GitHub Copilot, a partir do seguinte prompt:
 A estrutura inicial desta API foi gerada com o auxílio do assistente de IA GitHub Copilot, a partir do seguinte prompt:
 
 ```json
@@ -96,28 +96,100 @@ Após a geração inicial do código, foram aplicadas as seguintes melhorias:
 - Documentação da API com Swagger.
 - Testes automatizados com Supertest, Mocha e Chai (pipeline CI/CD).
 
+
 ## Estrutura do Projeto
 
-- `src`: Lógica de negócio, modelos e serviços.
-- `rest`: Rotas, controladores, middlewares e Swagger.
-- Banco de dados em memória (arrays).
+```
+api-gerenciador-tarefas/
+├── src/                # Lógica de negócio, modelos e serviços
+│   ├── models/         # Modelos de dados (User, Task)
+│   └── services/       # Serviços de negócio (userService, taskService)
+├── rest/               # Rotas, controladores, middlewares e Swagger
+│   ├── controllers/    # Controllers REST
+│   ├── middleware/     # Middleware de autenticação JWT
+│   ├── routes/         # Rotas REST
+│   ├── swagger/        # Documentação Swagger
+│   ├── app.js          # App Express (sem listen)
+│   └── server.js       # Inicialização do servidor REST
+├── graphql/            # API GraphQL (typeDefs, resolvers, autenticação)
+│   ├── typeDefs.js     # Schema GraphQL
+│   ├── resolvers.js    # Resolvers GraphQL
+│   ├── authenticate.js # Middleware GraphQL
+│   ├── app.js          # App Apollo Server
+│   └── server.js       # Inicialização do servidor GraphQL
+├── test/               # Testes automatizados
+│   ├── integration/    # Testes de integração (REST e GraphQL)
+│   ├── unit/           # Testes unitários
+├── .github/workflows/  # Pipeline CI/CD (GitHub Actions)
+├── package.json        # Dependências e scripts
+├── README.md           # Documentação
+└── .env                # Variáveis de ambiente
+```
 
-## Como Executar
+Banco de dados: em memória (arrays), apenas para fins didáticos/testes.
+
+
+## Como Executar a API
 
 1. **Instale as dependências:**
-   ```bash
-   npm install
-   ```
+  ```bash
+  npm install
+  ```
 
-2. **Inicie o servidor:**
-   ```bash
-   node server.js
-   ```
+2. **Inicie o servidor REST:**
+  ```bash
+  npm run start-rest
+  ```
 
-3. **Acesse a documentação Swagger:**
-   ```
-   http://localhost:3000/api-docs
-   ```
+3. **Inicie o servidor GraphQL:**
+  ```bash
+  npm run start-graphql
+  ```
+
+4. **Acesse a documentação Swagger:**
+  ```
+  http://localhost:3000/api-docs
+  ```
+
+## Como Executar os Testes
+
+Os testes automatizados utilizam Mocha, Chai, Supertest e Sinon. Para rodar todos os testes:
+
+```bash
+npm test
+```
+
+Para rodar testes específicos:
+
+- Testes unitários:
+  ```bash
+  npm run test-unit
+  ```
+- Testes de controllers REST:
+  ```bash
+  npm run test-rest-controller
+  ```
+- Testes externos REST (via HTTP):
+  ```bash
+  npm run test-rest-external
+  ```
+- Testes de integração GraphQL:
+  ```bash
+  npm run test-graphql
+  ```
+
+Os relatórios de testes são gerados em `mochawesome-report/`.
+
+## Integração Contínua (CI)
+
+O projeto utiliza GitHub Actions para rodar os testes automaticamente a cada push ou pull request na branch `main`. O workflow está definido em `.github/workflows/ci.yml` e executa:
+
+- Instalação das dependências
+- Inicialização dos servidores REST e GraphQL
+- Execução dos testes unitários, controllers, externos REST e integração GraphQL
+- Geração de relatórios Mochawesome
+
+As variáveis de ambiente são configuradas via `secrets` do GitHub.
 
 ## Sobre
 
