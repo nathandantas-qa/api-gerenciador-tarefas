@@ -100,7 +100,7 @@ describe('API GraphQL de Tarefas', () => {
 		expect(resposta.body.data.updateTask.completed).to.be.false;
 	});
 
-	it.only('não deve permitir que um usuário atualize uma tarefa que não é sua', async () => {
+	it('não deve permitir que um usuário atualize uma tarefa que não é sua', async () => {
 		// Cria tarefa com usuário principal
 		const mutationCreate = {
 			query: `mutation { createTask(title: "Tentando hackear", description: "não deve permitir que um usuário atualize uma tarefa que não é sua") { id } }`
