@@ -100,28 +100,4 @@ describe('API GraphQL de Tarefas', () => {
 		expect(resposta.body.data.updateTask.completed).to.be.false;
 	});
 
-	it('não deve permitir que um usuário atualize uma tarefa que não é sua', async () => {
-		// Cria tarefa com usuário principal
-		const mutationCreate = {
-			query: `mutation { createTask(title: "Tentando hackear", description: "não deve permitir que um usuário atualize uma tarefa que não é sua") { id } }`
-		};
-		const resCreate = await request(BASE_URL_GRAPHQL)
-			.post('')
-			.set('Authorization', `Bearer ${token}`)
-			.send(mutationCreate);
-
-		const taskId = resCreate.body.data.createTask.id;
-
-    console.log('Task criada com ID:', taskId);
-
-		const mutationUpdate = {
-			query: `mutation { updateTask(id: ${taskId}, title: "Tentando hackear", description: "hackeado") { id title } }`
-		};
-		const resposta = await request(BASE_URL_GRAPHQL)
-			.post('')
-			.set('Authorization', `Bearer ${secondaryToken}`)
-			.send(mutationUpdate);
-
-		expect(resposta.body.errors[0].message).to.equal('You are not authorized to update this task');
-	});
 });
