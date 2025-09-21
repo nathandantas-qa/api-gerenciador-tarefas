@@ -34,5 +34,11 @@ jobs:
     - name: Esperar as APIs estarem Funcionando
       run: sleep 8
 
-    - name: Rodar os testes External de API Rest via HTTP
+    - name: Rodar testes unitários
+      run: npm run test-unit
+
+    - name: Rodar testes de controller
+      run: npm run test-rest-controller
+
+    - name: Rodar testes External de API Rest via HTTP
       run: npm run test-rest-external

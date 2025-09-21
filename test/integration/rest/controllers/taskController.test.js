@@ -1,87 +1,153 @@
-const chai = require('chai');
+const request = require('supertest');
 const sinon = require('sinon');
+const { expect } = require('chai');
+
+// Aplicação
+const app = require('../../../../rest/app');
+
+// Mock
 const taskService = require('../../../../src/services/taskService');
-const { createTask, getTasks, updateTask } = require('../../../../rest/controllers/taskController');
 
-const { expect } = chai;
+// Fixture
+const postTask = require('../fixture/requisicoes/task/postTask.json');
+const putTaskSuccess = require('../fixture/requisicoes/task/putTask_success.json');
+const putTaskUnauthorized = require('../fixture/requisicoes/task/putTask_unauthorized.json');
+const postLogin_StandardUsers = require('../fixture/requisicoes/login/postLogin_StandardUsers.json');
+const postLogin_ReadOnlyUsers = require('../fixture/requisicoes/login/postLogin_ReadOnlyUsers.json');
+const respostaCriarTarefa = require('../fixture/respostas/deveCriarUmaNovaTarefaParaOUsuarioAutenticado.json');
+const respostaTodasTarefas = require('../fixture/respostas/deveRetornarTodasAsTarefasDoUsuarioAutenticado.json');
+const respostaAtualizarTarefa = require('../fixture/respostas/deveAtualizarUmaTarefaParaOUsuarioAutenticado.json');
+const respostaForbidden = require('../fixture/respostas/naoDevePermitirQueUmUsuarioAtualizeUmaTarefaQueNaoESua.json');
 
-describe('Task Controller', () => {
-  let req, res, sandbox;
+describe('Integração Task Controller', () => {
+  let token;
+  let secondaryToken;
+  let sandbox;
 
-  beforeEach(() => {
+  before( async () => {
+    // Login do usuário padrão
+    const respostaLogin = await request(app)
+      .post('/auth/login')
+      .send(postLogin_StandardUsers[0]);
+    token = respostaLogin.body.token;
+
+    // Login do usuário secundário
+    const respostaLoginSec = await request(app)
+      .post('/auth/login')
+      .send(postLogin_ReadOnlyUsers[0]);
+    secondaryToken = respostaLoginSec.body.token;
+
+  })
+
+  beforeEach(async () => {
     sandbox = sinon.createSandbox();
-    req = {
-      body: {},
-      params: {},
-      userId: 1,
-    };
-    res = {
-      status: sinon.stub().returnsThis(),
-      send: sinon.spy(),
-    };
   });
 
   afterEach(() => {
+    sinon.restore();
     sandbox.restore();
   });
 
-  describe('createTask', () => {
-    it('should create a task and return 201', () => {
-      req.body = { title: 'Test Task', description: 'Test Description' };
-      const task = { id: 1, ...req.body, userId: req.userId, completed: false };
-      sandbox.stub(taskService, 'createTask').returns(task);
-
-      createTask(req, res);
-
-      expect(res.status.calledWith(201)).to.be.true;
-      expect(res.send.calledWith(task)).to.be.true;
-    });
-
-    it('should return 400 if title is missing', () => {
-      req.body = { description: 'Test Description' };
-
-      createTask(req, res);
-
-      expect(res.status.calledWith(400)).to.be.true;
-      expect(res.send.calledWith({ message: 'Title is required' })).to.be.true;
-    });
+  it('não deve permitir acesso às tarefas sem um token', async () => {
+    const resposta = await request(app)
+      .get('/tasks');
+    expect(resposta.status).to.equal(403);
   });
 
-  describe('getTasks', () => {
-    it('should get all tasks for a user and return 200', () => {
-      const tasks = [{ id: 1, title: 'Test Task', description: 'Test Description', userId: req.userId, completed: false }];
-      sandbox.stub(taskService, 'findTasksByUserId').returns(tasks);
+  it('deve criar uma nova tarefa para o usuário autenticado', async () => {
 
-      getTasks(req, res);
+    const createTaskStub = sandbox.stub(taskService, 'createTask').returns(respostaCriarTarefa);
 
-      expect(res.status.calledWith(200)).to.be.true;
-      expect(res.send.calledWith(tasks)).to.be.true;
-    });
+    const resposta = await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${token}`)
+      .send(postTask);
+
+    expect(createTaskStub.calledOnce).to.be.true;
+    expect(resposta.status).to.equal(201);
+    expect(resposta.body).to.have.property('id');
+    expect(resposta.body.title).to.equal('Tarefa Teste');
   });
 
-  describe('updateTask', () => {
-    it('should update a task and return 200', () => {
-      req.params.id = '1';
-      req.body = { title: 'Updated Task', description: 'Updated Description', completed: true };
-      const updatedTask = { id: 1, ...req.body, userId: req.userId };
-      sandbox.stub(taskService, 'updateTask').returns({ success: true, data: updatedTask });
+  it('deve retornar todas as tarefas do usuário autenticado', async () => {
+    
+    const findTasksStub = sandbox.stub(taskService, 'findTasksByUserId');
+    findTasksStub.withArgs(respostaTodasTarefas[0].userId).returns(respostaTodasTarefas);
+    const primaryUserID = respostaTodasTarefas[0].userId;
+    
+    const respostaPrimaryUser = await request(app)
+      .get('/tasks')
+      .set('Authorization', `Bearer ${token}`);
 
-      updateTask(req, res);
+    expect(respostaPrimaryUser.status).to.equal(200);
+    expect(respostaPrimaryUser.body).to.be.an('array');
+    expect(respostaPrimaryUser.body.length).to.greaterThanOrEqual(2);
 
-      expect(res.status.calledWith(200)).to.be.true;
-      expect(res.send.calledWith(updatedTask)).to.be.true;
+    const taskExists = respostaPrimaryUser.body.every(task => task.userId === primaryUserID);
+    expect(taskExists).to.be.true;
+
+    // Usuário secundário
+    const tasksSecondarysDummy = [
+      { id: 3, title: 'Tarefa Secundária', description: 'Só do secundário', userId: 2, completed: false }
+    ];
+
+    findTasksStub.withArgs(tasksSecondarysDummy[0].userId).returns(tasksSecondarysDummy);
+    
+
+    const respostaSecondaryUser = await request(app)
+      .get('/tasks')
+      .set('Authorization', `Bearer ${secondaryToken}`);
+
+    expect(respostaSecondaryUser.status).to.equal(200);
+    expect(respostaSecondaryUser.body).to.be.an('array');
+    expect(respostaSecondaryUser.body.length).to.equal(1);
+
+    const noTasksLeakedToSecondaryUser = respostaSecondaryUser.body.every(task => task.userId !== primaryUserID);
+    expect(noTasksLeakedToSecondaryUser).to.be.true;
+
+  });
+
+  it('deve atualizar uma tarefa para o usuário autenticado', async () => {
+    
+    const updateTaskStub = sandbox.stub(taskService, 'updateTask').returns({
+        success: true,
+        data: respostaAtualizarTarefa
     });
 
-    it('should return an error if the task update fails', () => {
-      req.params.id = '1';
-      req.body = { title: 'Updated Task' };
-      const error = { success: false, status: 404, message: 'Task not found' };
-      sandbox.stub(taskService, 'updateTask').returns(error);
+    const resposta = await request(app)
+      .put(`/tasks/${putTaskSuccess.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(putTaskSuccess.putTask);
 
-      updateTask(req, res);
+    expect(updateTaskStub.calledOnce).to.be.true;
+    expect(resposta.status).to.equal(200);
+    expect(resposta.body).to.deep.equal(respostaAtualizarTarefa);
 
-      expect(res.status.calledWith(error.status)).to.be.true;
-      expect(res.send.calledWith({ message: error.message })).to.be.true;
-    });
+  });
+
+  it('não deve permitir que um usuário atualize uma tarefa que não é sua', async () => {
+    const updateTaskStub = sandbox.stub(taskService, 'updateTask').returns(respostaForbidden);
+
+    const resposta = await request(app)
+      .put(`/tasks/${putTaskUnauthorized.id}`)
+      .set('Authorization', `Bearer ${secondaryToken}`)
+      .send(putTaskUnauthorized.putTask);
+
+    expect(updateTaskStub.calledOnce).to.be.true;
+    expect(resposta.status).to.equal(403);
+    expect(resposta.body).to.have.property('message', 'Forbidden');
+
+
+  });
+
+
+  it('deve retornar 400 se o título estiver ausente ao criar tarefa', async () => {
+    const resposta = await request(app)
+      .post('/tasks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ description: 'Descrição sem título' });
+
+    expect(resposta.status).to.equal(400);
+    expect(resposta.body).to.have.property('message', 'Title is required');
   });
 });

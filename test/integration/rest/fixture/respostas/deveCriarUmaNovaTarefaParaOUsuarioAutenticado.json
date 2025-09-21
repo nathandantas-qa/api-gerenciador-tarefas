@@ -1,0 +1,7 @@
+{
+  "id": 1,
+  "title": "Tarefa Teste",
+  "description": "Deve criar uma nova tarefa para o usuário autenticado",
+  "userId": 1,
+  "completed": false
+}
